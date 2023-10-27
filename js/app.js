@@ -1,5 +1,5 @@
 import { app, db } from "./config-firebase.js"
-import { doc, setDoc, collection, addDoc, query, where, getDocs, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"
+import { doc, setDoc, collection, addDoc, query, where, getDocs, orderBy, limit, deleteDoc, updateDoc, documentId } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-firestore.js"
 
 let nome = document.querySelector("#tarefa")
 let data = document.querySelector("#data")
@@ -9,6 +9,7 @@ let bloco = document.querySelector("#bloco")
 let formCadastrar = document.querySelector("#formCadastrar")
 let formAtualizar = document.querySelector("#formAtualizar")
 let btnAtualizar = document.querySelector("#btnAtualizar")
+let idAtualizar = ""
 
 async function inserirTarefa() {
     try {
@@ -50,19 +51,22 @@ async function consultarTarefa() {
         </div>
         </li>
         `
-        document.querySelectorAll(".btn-danger").forEach((elemento)=>{
-            elemento.addEventListener("click", (evento)=>{
+        document.querySelectorAll(".btn-danger").forEach((elemento) => {
+            elemento.addEventListener("click", (evento) => {
                 // alert("botão excluir acionado")
                 console.log(evento.target.id)
                 excluirTarefa(evento.target.id)
             })
         })
-        document.querySelectorAll(".btn-info").forEach((elemento)=>{
-            elemento.addEventListener("click", ()=>{
-                if(formAtualizar.classList.contains("d-none")){
+        document.querySelectorAll(".btn-info").forEach((elemento) => {
+            elemento.addEventListener("click", (evento) => {
+                if (formAtualizar.classList.contains("d-none")) {
                     formCadastrar.classList.replace("d-block", "d-none")
                     formAtualizar.classList.replace("d-none", "d-block")
                 }
+
+                consultarUnico(evento.target.id)
+
             })
         })
     });
@@ -70,7 +74,7 @@ async function consultarTarefa() {
 
 async function excluirTarefa(id) {
     let resultado = confirm("Tem certeza que deseja excluir?")
-    if(resultado ){
+    if (resultado) {
         await deleteDoc(doc(db, "tarefa", id));
         alert("Tarefa excluida com sucesso")
 
@@ -78,11 +82,50 @@ async function excluirTarefa(id) {
     }
 }
 
+async function consultarUnico(id) {
+    idAtualizar = id // estamos passanod o id de documento salvo la no bnaco para a  variável
+    const banco = await collection(db, "tarefa")
+    const busca = query(banco, where(documentId(), "==", id))
+
+    const consulta = await getDocs(busca)
+
+    console.log(consulta.docs[0].data())
+
+    let resultado = consulta.docs[0].data()
+    // inserindo os dados no form html
+    tarefa_update.value = resultado.nome
+    data_update.value = resultado.data
+    status_update.value = resultado.status
+}
+
+async function atualizarTarefa() {
+    const tarefa = doc(db, "tarefa", idAtualizar);
+
+    // Set the "tabela" field of the city id
+    await updateDoc(tarefa, {
+        nome: tarefa_update.value,
+        data: data_update.value,
+        status: status_update.value
+    });
+    alert("Dados atualizados com sucesso")
+}
+
+
 btnTarefa.addEventListener("click", (evento) => {
     evento.preventDefault()
     console.log(nome.value, data.value, status.value)
     inserirTarefa()
     consultarTarefa()
+})
+
+btnAtualizar.addEventListener("click", (evento) => {
+    evento.preventDefault()
+    atualizarTarefa()
+    consultarTarefa()
+    if (formCadastrar.classList.contains("d-none")) {
+        formAtualizar.classList.replace("d-block", "d-none")
+        formCadastrar.classList.replace("d-none", "d-block")
+    }
 })
 
 
